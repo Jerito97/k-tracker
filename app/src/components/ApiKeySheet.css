@@ -1,0 +1,89 @@
+.apikey-trigger {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--text-12);
+  background: transparent;
+  color: var(--text-55);
+  font-size: 15px;
+  cursor: pointer;
+  transition: border-color 0.16s, color 0.16s;
+}
+.apikey-trigger:hover {
+  border-color: var(--accent-55);
+  color: var(--accent);
+}
+
+.apikey-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(10, 10, 16, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.apikey-sheet {
+  width: 100%;
+  max-width: 430px;
+  padding: 22px 20px 28px;
+  border-radius: 20px 20px 0 0;
+  background: #1c1e2d;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
+  animation: kfade 0.2s ease both;
+}
+
+.apikey-title {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.apikey-copy {
+  font: 400 13px/1.55 var(--font-sans);
+  color: var(--text-60);
+  margin: 0 0 16px;
+}
+
+.apikey-input {
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--text-14);
+  background: var(--surface);
+  color: var(--text);
+  font: 500 13px/1 var(--font-sans);
+  margin-bottom: 14px;
+}
+.apikey-input:focus {
+  border-color: var(--accent-55);
+}
+
+.apikey-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.apikey-btn {
+  flex: 1;
+  padding: 11px 4px;
+  border-radius: 10px;
+  font: 600 12px/1 var(--font-sans);
+  cursor: pointer;
+  transition: all 0.16s;
+}
+
+.apikey-btn--ghost {
+  border: 1px solid var(--text-14);
+  background: transparent;
+  color: var(--text-60);
+}
+
+.apikey-btn--primary {
+  border: 1px solid var(--accent);
+  background: var(--accent-16);
+  color: var(--accent);
+}
