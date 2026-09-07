@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updatePersonaCampo } from "@/lib/sheets";
+import { updatePersonaCampo, updatePosterManual } from "@/lib/sheets";
 
 export async function PATCH(req: NextRequest, { params }: { params: { row: string } }) {
   try {
@@ -8,6 +8,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { row: strin
       return NextResponse.json({ error: "Fila inválida." }, { status: 400 });
     }
     const body = await req.json();
+
+    if (typeof body.poster === "string") {
+      await updatePosterManual(row, body.poster.trim());
+      return NextResponse.json({ ok: true });
+    }
+
     const { persona, campo, valor } = body as {
       persona: string;
       campo: "estado" | "nota";

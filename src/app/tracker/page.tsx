@@ -70,6 +70,19 @@ export default function TrackerPage() {
     }
   }
 
+  async function handleUpdatePoster(row: number, url: string) {
+    const res = await fetch(`/api/titles/${row}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ poster: url }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "No se pudo guardar el póster.");
+    }
+    setTitulos((prev) => prev.map((t) => (t.row === row ? { ...t, poster: url || undefined } : t)));
+  }
+
   const byStatus = (k: string) =>
     persona ? titulos.filter((t) => (t.personas[persona]?.estado || "Pendiente") === k).length : 0;
 
@@ -104,6 +117,7 @@ export default function TrackerPage() {
         personas={personas}
         onBack={() => setOpenRow(null)}
         onUpdate={handleUpdate}
+        onUpdatePoster={handleUpdatePoster}
       />
     );
   }

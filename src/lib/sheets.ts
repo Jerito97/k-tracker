@@ -279,6 +279,14 @@ export async function updatePersonaCampo(
   await updateCelda(row, col, valor);
 }
 
+export async function updatePosterManual(row: number, url: string): Promise<void> {
+  const schema = await getSchema();
+  if (!schema.colPoster) {
+    throw new Error('Tu sheet no tiene una columna "Poster". Agregala en la fila 1 primero.');
+  }
+  await updateCelda(row, schema.colPoster, url);
+}
+
 export interface NuevoTitulo {
   titulo: string;
   tipo: string;

@@ -16,12 +16,16 @@ interface Props {
   personas: string[];
   onBack: () => void;
   onUpdate: (row: number, campo: "estado" | "nota", valor: string | number) => Promise<void>;
+  onUpdatePoster: (row: number, url: string) => Promise<void>;
 }
 
-export function TituloDetail({ titulo, personaActual, personas, onBack, onUpdate }: Props) {
+export function TituloDetail({ titulo, personaActual, personas, onBack, onUpdate, onUpdatePoster }: Props) {
   const { showToast } = useToast();
   const miEstadoActual = titulo.personas[personaActual]?.estado || "Pendiente";
   const [nota, setNota] = useState<number>(titulo.personas[personaActual]?.nota ?? 0);
+  const [editandoPoster, setEditandoPoster] = useState(false);
+  const [posterUrl, setPosterUrl] = useState(titulo.poster || "");
+  const [guardandoPoster, setGuardandoPoster] = useState(false);
 
   const notas = personas
     .map((nombre) => titulo.personas[nombre]?.nota)
@@ -43,6 +47,19 @@ export function TituloDetail({ titulo, personaActual, personas, onBack, onUpdate
       await onUpdate(titulo.row, "nota", v);
     } catch {
       showToast("No se pudo guardar la nota");
+    }
+  }
+
+  async function handleGuardarPoster() {
+    setGuardandoPoster(true);
+    try {
+      await onUpdatePoster(titulo.row, posterUrl.trim());
+      showToast("Póster actualizado");
+      setEditandoPoster(false);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "No se pudo guardar el póster");
+    } finally {
+      setGuardandoPoster(false);
     }
   }
 
@@ -68,6 +85,50 @@ export function TituloDetail({ titulo, personaActual, personas, onBack, onUpdate
       </div>
 
       <div className="detail-body">
+        {!editandoPoster ? (
+          <button
+            onClick={() => setEditandoPoster(true)}
+            style={{
+              border: "none",
+              background: "none",
+              color: "var(--text-faint)",
+              font: "500 11px/1 var(--font-body)",
+              cursor: "pointer",
+              padding: 0,
+              marginBottom: 16,
+            }}
+          >
+            {titulo.poster ? "¿Póster equivocado? Corregirlo" : "+ Agregar póster manualmente"}
+          </button>
+        ) : (
+          <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+            <input
+              className="search-input"
+              placeholder="URL de la imagen"
+              value={posterUrl}
+              onChange={(e) => setPosterUrl(e.target.value)}
+              style={{ fontSize: 12 }}
+            />
+            <button
+              onClick={handleGuardarPoster}
+              disabled={guardandoPoster}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "var(--radius-md)",
+                border: "none",
+                background: "var(--accent)",
+                color: "var(--frame-bg)",
+                fontWeight: 600,
+                fontSize: 12,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {guardandoPoster ? "..." : "Guardar"}
+            </button>
+          </div>
+        )}
+
         {titulo.resumen && <p className="detail-synopsis">{titulo.resumen}</p>}
 
         <div className="detail-score-row">
