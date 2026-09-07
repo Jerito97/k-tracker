@@ -36,6 +36,8 @@ export interface SheetSchema {
   colResumen: number;
   colNotaCritica: number;
   colPromedio: number | null;
+  /** Columna opcional "Poster" (URL). Si no existe en la sheet, se muestra un placeholder. */
+  colPoster: number | null;
   /** Cuántas filas de encabezado tiene la sheet (1 o 2) */
   headerRows: number;
   /** Índice de la última columna usada */

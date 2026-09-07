@@ -3,18 +3,33 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePersonContext } from "@/context/PersonContext";
 import { TituloCard } from "@/components/TituloCard";
+import { TituloDetail } from "@/components/TituloDetail";
+import { colorFor, initialFor } from "@/lib/palette";
 import type { Titulo } from "@/lib/types";
 import { ESTADOS } from "@/lib/types";
 
 const FILTRO_TODOS = "Todos";
+const KIND_FILTROS: [string, string][] = [
+  ["Todo", "Series y películas"],
+  ["Serie", "Series"],
+  ["Película", "Películas"],
+];
+
+const STATUS_DOT: Record<string, string> = {
+  Todos: "rgba(236,234,240,.25)",
+  Pendiente: "rgba(236,234,240,.4)",
+  Mirando: "var(--accent)",
+  Visto: "var(--accent-2)",
+};
 
 export default function TrackerPage() {
-  const { persona, personas } = usePersonContext();
+  const { persona, personas, clearPersona } = usePersonContext();
   const [titulos, setTitulos] = useState<Titulo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<string>(FILTRO_TODOS);
-  const [filtroPersona, setFiltroPersona] = useState<string>("__yo__");
+  const [filtroTipo, setFiltroTipo] = useState<string>("Todo");
+  const [openRow, setOpenRow] = useState<number | null>(null);
 
   async function cargarTitulos() {
     setLoading(true);
@@ -33,7 +48,6 @@ export default function TrackerPage() {
 
   useEffect(() => {
     cargarTitulos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleUpdate(row: number, campo: "estado" | "nota", valor: string | number) {
@@ -41,16 +55,7 @@ export default function TrackerPage() {
     setTitulos((prev) =>
       prev.map((t) =>
         t.row === row
-          ? {
-              ...t,
-              personas: {
-                ...t.personas,
-                [persona]: {
-                  ...t.personas[persona],
-                  [campo === "estado" ? "estado" : "nota"]: valor,
-                },
-              },
-            }
+          ? { ...t, personas: { ...t.personas, [persona]: { ...t.personas[persona], [campo]: valor } } }
           : t
       )
     );
@@ -65,81 +70,137 @@ export default function TrackerPage() {
     }
   }
 
-  const personaParaFiltro = filtroPersona === "__yo__" ? persona : filtroPersona;
+  const byStatus = (k: string) =>
+    persona ? titulos.filter((t) => (t.personas[persona]?.estado || "Pendiente") === k).length : 0;
+
+  const statusFilters = [FILTRO_TODOS, ...ESTADOS].map((k) => ({
+    key: k,
+    label: k,
+    count: k === FILTRO_TODOS ? titulos.length : byStatus(k),
+    dot: STATUS_DOT[k],
+  }));
 
   const titulosFiltrados = useMemo(() => {
+    if (!persona) return [];
     return titulos.filter((t) => {
-      if (filtroEstado === FILTRO_TODOS) return true;
-      const estadoPersona = personaParaFiltro ? t.personas[personaParaFiltro]?.estado : null;
-      return (estadoPersona || "Pendiente") === filtroEstado;
+      const estadoPersona = t.personas[persona]?.estado || "Pendiente";
+      const matchEstado = filtroEstado === FILTRO_TODOS || estadoPersona === filtroEstado;
+      const matchTipo = filtroTipo === "Todo" || t.tipo === filtroTipo;
+      return matchEstado && matchTipo;
     });
-  }, [titulos, filtroEstado, personaParaFiltro]);
+  }, [titulos, filtroEstado, filtroTipo, persona]);
+
+  const tituloAbierto = openRow != null ? titulos.find((t) => t.row === openRow) : null;
 
   if (!persona) return null;
+
+  const myColor = colorFor(personas.indexOf(persona));
+
+  if (tituloAbierto) {
+    return (
+      <TituloDetail
+        titulo={tituloAbierto}
+        personaActual={persona}
+        personas={personas}
+        onBack={() => setOpenRow(null)}
+        onUpdate={handleUpdate}
+      />
+    );
+  }
 
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Tracker</h1>
-        <span className="muted">{titulosFiltrados.length} títulos</span>
-      </div>
-
-      <div className="filter-row">
-        <span className="filter-label">Estado</span>
-        <div className="filter-bar">
-          {[FILTRO_TODOS, ...ESTADOS].map((e) => (
-            <button
-              key={e}
-              className={"filter-chip" + (filtroEstado === e ? " active" : "")}
-              onClick={() => setFiltroEstado(e)}
-            >
-              {e}
-            </button>
-          ))}
+        <div>
+          <span className="page-kicker">La lista</span>
+          <h2 style={{ marginTop: 8 }}>
+            Nuestro <em>tablero</em>
+          </h2>
         </div>
-      </div>
-
-      <div className="filter-row">
-        <span className="filter-label">Estado de</span>
-        <div className="filter-bar">
-          <button
-            className={"filter-chip" + (filtroPersona === "__yo__" ? " active" : "")}
-            onClick={() => setFiltroPersona("__yo__")}
+        <button
+          onClick={clearPersona}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "5px 10px 5px 5px",
+            border: "1px solid var(--border)",
+            borderRadius: 999,
+            background: "transparent",
+            color: "var(--text)",
+            cursor: "pointer",
+            flex: "none",
+          }}
+        >
+          <span
+            className="avatar avatar-sm"
+            style={{ background: myColor.tint, color: myColor.color }}
           >
-            Yo ({persona})
+            {initialFor(persona)}
+          </span>
+          <span style={{ font: "600 11px/1 var(--font-body)" }}>{persona}</span>
+        </button>
+      </div>
+
+      <div className="filter-bar">
+        {statusFilters.map((f) => (
+          <button
+            key={f.key}
+            className={"filter-chip" + (filtroEstado === f.key ? " active" : "")}
+            onClick={() => setFiltroEstado(f.key)}
+          >
+            <span className="dot" style={{ background: f.dot }} />
+            {f.label}
+            <span className="count">{f.count}</span>
           </button>
-          {personas
-            .filter((p) => p !== persona)
-            .map((p) => (
-              <button
-                key={p}
-                className={"filter-chip" + (filtroPersona === p ? " active" : "")}
-                onClick={() => setFiltroPersona(p)}
-              >
-                {p}
-              </button>
-            ))}
-        </div>
+        ))}
+      </div>
+      <div className="filter-hr" />
+      <div className="filter-bar kind">
+        {KIND_FILTROS.map(([key, label]) => (
+          <button
+            key={key}
+            className={"filter-chip" + (filtroTipo === key ? " active" : "")}
+            onClick={() => setFiltroTipo(key)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {error && <p className="error-text">{error}</p>}
 
       {loading && (
-        <>
+        <div className="titulo-grid">
           <div className="skeleton" />
           <div className="skeleton" />
           <div className="skeleton" />
-        </>
+          <div className="skeleton" />
+        </div>
       )}
 
       {!loading && titulosFiltrados.length === 0 && !error && (
         <div className="empty-state">No hay títulos que matcheen este filtro todavía.</div>
       )}
 
-      {!loading &&
-        titulosFiltrados.map((t) => (
-          <TituloCard key={t.row} titulo={t} personaActual={persona} onUpdate={handleUpdate} />
-        ))}
+      {!loading && titulosFiltrados.length > 0 && (
+        <>
+          <div className="titulo-grid">
+            {titulosFiltrados.map((t) => (
+              <TituloCard
+                key={t.row}
+                titulo={t}
+                personaActual={persona}
+                personas={personas}
+                onOpen={() => setOpenRow(t.row)}
+              />
+            ))}
+          </div>
+          <p className="count-line">
+            {titulosFiltrados.length} de {titulos.length} títulos · toca una card para las notas
+          </p>
+        </>
+      )}
     </div>
   );
 }
