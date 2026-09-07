@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePersonContext } from "@/context/PersonContext";
+import { colorFor, initialFor } from "@/lib/palette";
 
 export function PersonGate({ children }: { children: React.ReactNode }) {
   const { persona, personas, loadingPersonas, error, setPersona, addPersona } = usePersonContext();
@@ -28,43 +29,60 @@ export function PersonGate({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="person-gate">
-      <div className="person-gate-card">
-        <h1>¿Quién sos?</h1>
-        <p className="muted">Elegí tu nombre para trackear tus k-dramas.</p>
-
-        {loadingPersonas && <p className="muted">Cargando...</p>}
-        {error && <p className="error-text">{error}</p>}
-
-        {!loadingPersonas && !error && (
-          <div className="person-grid">
-            {personas.map((nombre) => (
-              <button key={nombre} className="person-btn" onClick={() => setPersona(nombre)}>
-                {nombre}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {!addingNew ? (
-          <button className="link-btn" onClick={() => setAddingNew(true)}>
-            + Soy nueva por acá
-          </button>
-        ) : (
-          <form onSubmit={handleAddNueva} className="add-person-form">
-            <input
-              autoFocus
-              placeholder="Tu nombre"
-              value={nuevoNombre}
-              onChange={(e) => setNuevoNombre(e.target.value)}
-              maxLength={40}
-            />
-            <button type="submit" disabled={submitting || !nuevoNombre.trim()}>
-              {submitting ? "Agregando..." : "Agregarme"}
-            </button>
-            {formError && <p className="error-text">{formError}</p>}
-          </form>
-        )}
+      <div className="person-gate-brand">
+        <div className="person-gate-brand-dot" />
+        <span>K-Tracker</span>
       </div>
+      <h1>
+        Elegí tu
+        <br />
+        <em>perfil</em>
+      </h1>
+
+      {loadingPersonas && <p className="muted">Cargando...</p>}
+      {error && <p className="error-text">{error}</p>}
+
+      {!loadingPersonas && !error && (
+        <div className="person-grid">
+          {personas.map((nombre, i) => {
+            const c = colorFor(i);
+            return (
+              <button key={nombre} className="person-btn" onClick={() => setPersona(nombre)}>
+                <div
+                  className="avatar"
+                  style={{ background: c.tint, boxShadow: `inset 0 0 0 1px ${c.color}`, color: c.color }}
+                >
+                  {initialFor(nombre)}
+                </div>
+                <span className="person-btn-info">
+                  <span className="person-btn-name">{nombre}</span>
+                  <span className="person-btn-tag">Tocá para entrar</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {!addingNew ? (
+        <button className="link-btn" onClick={() => setAddingNew(true)}>
+          + Soy nueva por acá
+        </button>
+      ) : (
+        <form onSubmit={handleAddNueva} className="add-person-form">
+          <input
+            autoFocus
+            placeholder="Tu nombre"
+            value={nuevoNombre}
+            onChange={(e) => setNuevoNombre(e.target.value)}
+            maxLength={40}
+          />
+          <button type="submit" disabled={submitting || !nuevoNombre.trim()}>
+            {submitting ? "Agregando..." : "Agregarme"}
+          </button>
+          {formError && <p className="error-text">{formError}</p>}
+        </form>
+      )}
     </div>
   );
 }

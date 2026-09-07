@@ -5,14 +5,14 @@ import { usePathname } from "next/navigation";
 import { usePersonContext } from "@/context/PersonContext";
 
 const ITEMS = [
-  { href: "/tracker", label: "Tracker", icon: "\u{1F4FA}" },
-  { href: "/buscar", label: "Buscar", icon: "\u{1F50D}" },
-  { href: "/dashboard", label: "Stats", icon: "\u{1F4CA}" },
+  { href: "/tracker", label: "Tablero", icon: "▦" },
+  { href: "/descubrir", label: "Descubrir", icon: "✦" },
+  { href: "/dashboard", label: "Stats", icon: "◔" },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { persona, clearPersona } = usePersonContext();
+  const { persona } = usePersonContext();
 
   if (!persona) return null;
 
@@ -30,12 +30,6 @@ export function BottomNav() {
           <span>{item.label}</span>
         </Link>
       ))}
-      <button className="nav-item nav-item-persona" onClick={clearPersona} title="Cambiar de persona">
-        <span className="nav-icon" aria-hidden>
-          👤
-        </span>
-        <span>{persona}</span>
-      </button>
     </nav>
   );
 }

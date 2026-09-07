@@ -4,13 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { usePersonContext } from "@/context/PersonContext";
 import type { Titulo } from "@/lib/types";
 import { computeStats } from "@/lib/stats";
-import { recomendar } from "@/lib/recommend";
+import { colorFor } from "@/lib/palette";
+
+type Variant = "vistos" | "critica";
 
 export default function DashboardPage() {
   const { persona, personas } = usePersonContext();
   const [titulos, setTitulos] = useState<Titulo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [variant, setVariant] = useState<Variant>("vistos");
 
   useEffect(() => {
     async function cargar() {
@@ -31,107 +34,118 @@ export default function DashboardPage() {
   }, []);
 
   const stats = useMemo(() => computeStats(titulos, personas), [titulos, personas]);
-  const recomendaciones = useMemo(
-    () => (persona ? recomendar(titulos, persona, 4) : []),
-    [titulos, persona]
-  );
-
-  const maxNota = 10;
-  const maxDistribucion = Math.max(1, ...Object.values(stats.distribucionTipo));
+  const maxWatched = Math.max(1, ...stats.porPersona.map((p) => p.cantidadVista));
 
   if (!persona) return null;
 
   return (
     <div className="page">
-      <div className="page-header">
-        <h1>Stats</h1>
-      </div>
+      <span className="page-kicker">Estadísticas</span>
+      <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: 38, margin: "8px 0 18px" }}>
+        Quién <em style={{ fontStyle: "italic", color: "var(--accent)" }}>mira</em> más
+      </h2>
 
       {loading && <p className="muted">Cargando...</p>}
       {error && <p className="error-text">{error}</p>}
 
       {!loading && !error && (
         <>
-          {recomendaciones.length > 0 && (
-            <>
-              <h2 className="section-title">Recomendado para {persona}</h2>
-              {recomendaciones.map(({ titulo, motivo }) => (
-                <div key={titulo.row} className="reco-card">
-                  {titulo.poster && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={titulo.poster} alt="" className="titulo-poster" />
-                  )}
-                  <div className="titulo-info">
-                    <h3>{titulo.titulo}</h3>
-                    <div className="titulo-meta">
-                      {titulo.tipo && <span className="tag">{titulo.tipo}</span>}
-                      {titulo.notaCritica != null && <span>Crítica: {titulo.notaCritica}</span>}
-                    </div>
-                    <p className="reco-reason">{motivo}</p>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-
-          <h2 className="section-title">Resumen general</h2>
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-value">{stats.totalTitulos}</div>
-              <div className="stat-label">Títulos cargados</div>
+          <div className="stat-tiles">
+            <div className="stat-tile">
+              <div className="stat-tile-value">{stats.totalTitulos}</div>
+              <div className="stat-tile-label">Títulos cargados</div>
             </div>
             {Object.entries(stats.distribucionTipo).map(([tipo, cantidad]) => (
-              <div className="stat-card" key={tipo}>
-                <div className="stat-value">{cantidad}</div>
-                <div className="stat-label">{tipo}s</div>
+              <div className="stat-tile" key={tipo}>
+                <div className="stat-tile-value">{cantidad}</div>
+                <div className="stat-tile-label">{tipo}s</div>
               </div>
             ))}
           </div>
 
-          <h2 className="section-title">Distribución por tipo</h2>
-          {Object.entries(stats.distribucionTipo).map(([tipo, cantidad]) => (
-            <div className="bar-row" key={tipo}>
-              <span className="bar-label">{tipo}</span>
-              <div className="bar-track">
-                <div
-                  className="bar-fill"
-                  style={{ width: `${(cantidad / maxDistribucion) * 100}%` }}
-                />
-              </div>
-              <span className="bar-value">{cantidad}</span>
-            </div>
-          ))}
+          <div className="stats-toggle">
+            <button className={variant === "vistos" ? "active" : ""} onClick={() => setVariant("vistos")}>
+              Vistos
+            </button>
+            <button className={variant === "critica" ? "active" : ""} onClick={() => setVariant("critica")}>
+              Vs. crítica
+            </button>
+          </div>
 
-          <h2 className="section-title">Notas por persona</h2>
-          {stats.porPersona.map((p) => (
-            <div key={p.persona} style={{ marginBottom: 16 }}>
-              <div className="bar-row">
-                <span className="bar-label">{p.persona}</span>
-                <div className="bar-track">
-                  <div
-                    className="bar-fill"
-                    style={{ width: `${((p.promedioNota || 0) / maxNota) * 100}%` }}
-                  />
-                </div>
-                <span className="bar-value">{p.promedioNota != null ? p.promedioNota.toFixed(1) : "–"}</span>
-              </div>
-              <div className="bar-row">
-                <span className="bar-label muted">vs. crítica</span>
-                <div className="bar-track">
-                  <div
-                    className="bar-fill critica"
-                    style={{ width: `${((p.promedioCriticaDeSusVistos || 0) / maxNota) * 100}%` }}
-                  />
-                </div>
-                <span className="bar-value">
-                  {p.promedioCriticaDeSusVistos != null ? p.promedioCriticaDeSusVistos.toFixed(1) : "–"}
-                </span>
-              </div>
-              <p className="muted" style={{ margin: "4px 0 0" }}>
-                {p.cantidadVista} vistas · {p.cantidadMirando} mirando · {p.cantidadPendiente} pendientes
-              </p>
-            </div>
-          ))}
+          {variant === "vistos" && (
+            <>
+              <div className="stats-section-label">Títulos vistos por persona</div>
+              {stats.porPersona.map((p) => {
+                const c = colorFor(personas.indexOf(p.persona));
+                return (
+                  <div key={p.persona} className="person-bar-row">
+                    <div className="person-bar-head">
+                      <span className="person-bar-name">{p.persona}</span>
+                      <span className="person-bar-sub">
+                        {p.promedioNota != null ? `promedio ${p.promedioNota.toFixed(1)}` : "sin notas"}
+                      </span>
+                      <span className="person-bar-value" style={{ color: c.color }}>
+                        {p.cantidadVista}
+                      </span>
+                    </div>
+                    <div className="bar-track">
+                      <div
+                        className="bar-fill"
+                        style={{
+                          width: `${(p.cantidadVista / maxWatched) * 100}%`,
+                          background: `linear-gradient(90deg, ${c.color}, ${c.colorSoft})`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {variant === "critica" && (
+            <>
+              <div className="stats-section-label">Tu nota vs. la crítica</div>
+              {stats.porPersona.map((p) => {
+                const c = colorFor(personas.indexOf(p.persona));
+                return (
+                  <div key={p.persona} className="person-bar-row">
+                    <div className="person-bar-head">
+                      <span className="person-bar-name">{p.persona}</span>
+                      <span className="person-bar-value" style={{ color: c.color }}>
+                        {p.promedioNota != null ? p.promedioNota.toFixed(1) : "–"}
+                      </span>
+                    </div>
+                    <div className="bar-track" style={{ marginBottom: 6 }}>
+                      <div
+                        className="bar-fill"
+                        style={{ width: `${((p.promedioNota || 0) / 10) * 100}%`, background: c.color }}
+                      />
+                    </div>
+                    <div className="person-bar-head" style={{ marginBottom: 4 }}>
+                      <span className="person-bar-sub">vs. crítica</span>
+                      <span className="person-bar-value" style={{ fontSize: 18, color: "var(--text-faint)" }}>
+                        {p.promedioCriticaDeSusVistos != null ? p.promedioCriticaDeSusVistos.toFixed(1) : "–"}
+                      </span>
+                    </div>
+                    <div className="bar-track">
+                      <div
+                        className="bar-fill"
+                        style={{
+                          width: `${((p.promedioCriticaDeSusVistos || 0) / 10) * 100}%`,
+                          background: "var(--text-faint)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          <p className="stats-footnote">
+            Sobre {stats.totalTitulos} títulos cargados en la sheet compartida.
+          </p>
         </>
       )}
     </div>

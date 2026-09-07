@@ -6,10 +6,9 @@ Stack: Next.js 14 (App Router) + TypeScript, pensado para Vercel (plan Hobby).
 
 ## Funcionalidades
 
-- **Tracker**: cards de todos los títulos, filtro por estado y por persona, edición inline de Estado/Nota sincronizada con el Sheet.
-- **Buscar y agregar**: búsqueda manual por título en OMDb, agrega el título a la sheet como "Pendiente" para todas las personas.
-- **Recomendador simple**: sugiere pendientes según lo que cada persona vio y calificó bien (o por Nota Crítica si todavía no calificó nada).
-- **Dashboard de stats**: promedio de notas por persona vs. Nota Crítica, cantidad vista, distribución por tipo.
+- **Tracker** (`/tracker`): grilla de pósters de todos los títulos, filtro por estado y por tipo (Serie/Película). Tocar una card abre el detalle con las notas de cada persona y edición de Estado/Nota (slider 0-10) sincronizada con el Sheet.
+- **Descubrir** (`/descubrir`): búsqueda manual por título en OMDb (agrega el título a la sheet como "Pendiente" para todas las personas) + recomendador simple que sugiere pendientes según lo que la persona actual vio y calificó bien (o por Nota Crítica si todavía no calificó nada).
+- **Dashboard de stats** (`/dashboard`): cantidad vista por persona y promedio de notas, o comparación de tu nota vs. Nota Crítica, más distribución por tipo.
 - **Personas configurables**: no hay usuarios/login. Se elige "quién sos" al entrar (se guarda en `localStorage`), y se puede sumar gente nueva desde la propia app — la sheet se actualiza dinámicamente, sin nombres hardcodeados en el código.
 
 ## Cómo la app lee la estructura de la sheet
@@ -90,9 +89,9 @@ Abrí [http://localhost:3000](http://localhost:3000) — te va a pedir "¿Quién
 ```
 src/
   app/
-    tracker/        Vista principal (cards + filtros + edición inline)
-    buscar/         Búsqueda OMDb + agregar a la sheet
-    dashboard/       Recomendador + stats
+    tracker/        Grilla de títulos + filtros + overlay de detalle
+    descubrir/      Búsqueda OMDb + recomendador simple
+    dashboard/       Stats (vistos por persona / vs. crítica)
     api/
       titles/       GET (listar), POST (agregar título)
       titles/[row]/ PATCH (actualizar estado/nota de una persona en una fila)
@@ -103,18 +102,31 @@ src/
     omdb.ts          Cliente de OMDb
     stats.ts         Cálculo de estadísticas para el Dashboard
     recommend.ts     Lógica del recomendador simple
+    palette.ts       Paleta de colores cíclica por persona (sin nombres hardcodeados)
     types.ts         Tipos compartidos
   context/
     PersonContext.tsx  Estado de "quién sos" (localStorage) + lista de personas
+    ToastContext.tsx   Notificaciones tipo toast (confirmaciones de guardado)
   components/
     PersonGate.tsx     Selector "¿Quién sos?" / alta de persona nueva
     BottomNav.tsx       Navegación inferior (mobile-first)
-    TituloCard.tsx      Card de un título en el Tracker
+    TituloCard.tsx      Card de póster en la grilla del Tracker
+    TituloDetail.tsx    Overlay de detalle de un título (notas + edición)
 ```
 
-## Nota sobre el diseño
+## Diseño
 
-Se intentó importar el diseño desde el canvas de Claude Design indicado (`K-Tracker.dc.html`), pero la URL de `claude.ai/design/...` requiere una sesión autenticada a la que este entorno no tiene acceso (devuelve 403). La UI actual es una implementación propia mobile-first basada en la descripción funcional. Si me pasás el HTML/CSS exportado del diseño (o acceso a esa sesión), lo adapto 1:1 sobre esta misma base de componentes.
+La UI está basada en el diseño hecho en Claude Design (`K-Tracker.dc.html`): tema oscuro, tipografías Manrope (texto) + Instrument Serif itálica (títulos y números destacados), acentos coral/ámbar/rosa por persona, layout tipo "phone frame" centrado.
+
+Dos elementos del diseño original usaban datos que la sheet no trackea, así que se reemplazaron por métricas reales en vez de inventar datos:
+- "Racha" y "última actividad" (fechas) → reemplazado por conteos reales (vistos/pendientes).
+- Gráfico de actividad mensual → reemplazado por el comparativo real "tu nota vs. Nota Crítica".
+
+Los colores por persona se asignan dinámicamente por posición (`src/lib/palette.ts`), no por nombre — se mantienen estables al agregar gente nueva.
+
+### Poster opcional
+
+Si tu sheet tiene una columna llamada `Poster` (URL de imagen), la app la lee y la muestra en las cards y en el detalle. Si no existe esa columna, se muestra un placeholder con el título. Al agregar un título desde `/descubrir`, si la columna `Poster` existe se completa automáticamente con la imagen que trae OMDb.
 
 ## Próximos pasos posibles
 

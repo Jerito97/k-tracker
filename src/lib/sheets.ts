@@ -81,6 +81,7 @@ const FIXED_MATCHERS: Record<string, string[]> = {
   resumen: ["resumen"],
   notaCritica: ["nota critica", "nota_critica", "critica"],
   promedio: ["promedio"],
+  poster: ["poster", "póster", "imagen", "portada"],
 };
 
 /**
@@ -95,6 +96,7 @@ export function parseSchema(headerRow: string[]): SheetSchema {
   let colResumen = -1;
   let colNotaCritica = -1;
   let colPromedio: number | null = null;
+  let colPoster: number | null = null;
 
   const personBuckets = new Map<
     string,
@@ -125,6 +127,10 @@ export function parseSchema(headerRow: string[]): SheetSchema {
     }
     if (FIXED_MATCHERS.promedio.includes(norm)) {
       colPromedio = col;
+      return;
+    }
+    if (FIXED_MATCHERS.poster.includes(norm)) {
+      colPoster = col;
       return;
     }
 
@@ -166,6 +172,7 @@ export function parseSchema(headerRow: string[]): SheetSchema {
     colResumen,
     colNotaCritica,
     colPromedio || 0,
+    colPoster || 0,
     ...personas.map((p) => Math.max(p.colEstado, p.colNota)),
     headerRow.length
   );
@@ -177,6 +184,7 @@ export function parseSchema(headerRow: string[]): SheetSchema {
     colResumen,
     colNotaCritica,
     colPromedio,
+    colPoster,
     headerRows: 1,
     lastCol,
   };
@@ -237,6 +245,7 @@ export async function getTitulos(): Promise<Titulo[]> {
       resumen: (row[schema.colResumen - 1] || "").toString().trim(),
       notaCritica: parseNumber(row[schema.colNotaCritica - 1]),
       promedio: schema.colPromedio ? parseNumber(row[schema.colPromedio - 1]) : null,
+      poster: schema.colPoster ? (row[schema.colPoster - 1] || "").toString().trim() || undefined : undefined,
       personas,
     });
   });
@@ -288,6 +297,9 @@ export async function addTitulo(data: NuevoTitulo): Promise<void> {
   row[schema.colResumen - 1] = data.resumen;
   if (data.notaCritica !== null && data.notaCritica !== undefined) {
     row[schema.colNotaCritica - 1] = data.notaCritica;
+  }
+  if (schema.colPoster && data.poster) {
+    row[schema.colPoster - 1] = data.poster;
   }
   for (const persona of schema.personas) {
     row[persona.colEstado - 1] = "Pendiente";
