@@ -33,11 +33,11 @@ interface TmdbMultiItem {
   original_language?: string;
 }
 
-export async function buscarTitulos(query: string): Promise<TmdbResultado[]> {
+export async function buscarTitulos(query: string, language = "es-ES"): Promise<TmdbResultado[]> {
   const apiKey = requireApiKey();
   const url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(
     query
-  )}&language=es-ES&include_adult=false`;
+  )}&language=${language}&include_adult=false`;
   const res = await fetch(url);
   const data = await res.json();
   const results = (data.results || []) as TmdbMultiItem[];
