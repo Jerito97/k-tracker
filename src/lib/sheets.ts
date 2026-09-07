@@ -17,11 +17,29 @@ function requiredEnv(name: string): string {
 
 let cachedClient: sheets_v4.Sheets | null = null;
 
+function normalizePrivateKey(raw: string): string {
+  let key = raw.trim();
+  // Si se pegó con las comillas envolventes (comunes al copiar de un .env), sacarlas.
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1);
+  }
+  return key.replace(/\\n/g, "\n").trim();
+}
+
 function getClient(): sheets_v4.Sheets {
   if (cachedClient) return cachedClient;
 
-  const email = requiredEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL");
-  const key = requiredEnv("GOOGLE_PRIVATE_KEY").replace(/\\n/g, "\n");
+  const email = requiredEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL").trim();
+  const key = normalizePrivateKey(requiredEnv("GOOGLE_PRIVATE_KEY"));
+
+  if (!key.includes("BEGIN PRIVATE KEY")) {
+    throw new Error(
+      "GOOGLE_PRIVATE_KEY no parece un PEM válido (no contiene 'BEGIN PRIVATE KEY'). Revisá que hayas pegado el valor completo del private_key del JSON del Service Account, sin comillas extra."
+    );
+  }
 
   const auth = new google.auth.JWT({
     email,
