@@ -7,7 +7,7 @@ Stack: Next.js 14 (App Router) + TypeScript, pensado para Vercel (plan Hobby).
 ## Funcionalidades
 
 - **Tracker** (`/tracker`): grilla de pósters de todos los títulos, filtro por estado y por tipo (Serie/Película). Tocar una card abre el detalle con las notas de cada persona y edición de Estado/Nota (slider 0-10) sincronizada con el Sheet.
-- **Descubrir** (`/descubrir`): búsqueda manual por título en OMDb (agrega el título a la sheet como "Pendiente" para todas las personas) + recomendador simple que sugiere pendientes según lo que la persona actual vio y calificó bien (o por Nota Crítica si todavía no calificó nada).
+- **Descubrir** (`/descubrir`): búsqueda manual por título en TMDB (agrega el título a la sheet como "Pendiente" para todas las personas) + recomendador simple que sugiere pendientes según lo que la persona actual vio y calificó bien (o por Nota Crítica si todavía no calificó nada).
 - **Dashboard de stats** (`/dashboard`): cantidad vista por persona y promedio de notas, o comparación de tu nota vs. Nota Crítica, más distribución por tipo.
 - **Personas configurables**: no hay usuarios/login. Se elige "quién sos" al entrar (se guarda en `localStorage`), y se puede sumar gente nueva desde la propia app — la sheet se actualiza dinámicamente, sin nombres hardcodeados en el código.
 
@@ -33,7 +33,7 @@ Agregar una persona nueva desde la app (botón "Soy nueva por acá" o el formula
 
 - Node.js 18.18+ (usamos Node 22 en desarrollo).
 - Una cuenta de Google con acceso al Sheet: `1RqZYKqW3pf0gLlVUgl2AwKuy1v5om7pWrYk6y4Mr65c`.
-- Una API key gratuita de [OMDb](https://www.omdbapi.com/apikey.aspx).
+- Una API key gratuita de [TMDB](https://www.themoviedb.org/settings/api) ("API Key (v3 auth)").
 
 ### 2. Instalar dependencias
 
@@ -65,7 +65,7 @@ GOOGLE_SHEET_ID=1RqZYKqW3pf0gLlVUgl2AwKuy1v5om7pWrYk6y4Mr65c
 GOOGLE_SHEET_TAB=Hoja 1   # nombre exacto de la pestaña dentro del spreadsheet
 GOOGLE_SERVICE_ACCOUNT_EMAIL=xxxx@xxxx.iam.gserviceaccount.com
 GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-OMDB_API_KEY=xxxxxxxx
+TMDB_API_KEY=xxxxxxxx
 ```
 
 ### 5. Correr en local
@@ -80,7 +80,7 @@ Abrí [http://localhost:3000](http://localhost:3000) — te va a pedir "¿Quién
 
 1. Importá el repo en [vercel.com/new](https://vercel.com/new).
 2. Framework preset: **Next.js** (se detecta solo).
-3. En **Settings → Environment Variables**, cargá las mismas 5 variables de `.env.local` (`GOOGLE_SHEET_ID`, `GOOGLE_SHEET_TAB`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `OMDB_API_KEY`).
+3. En **Settings → Environment Variables**, cargá las mismas 5 variables de `.env.local` (`GOOGLE_SHEET_ID`, `GOOGLE_SHEET_TAB`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `TMDB_API_KEY`).
    - Para `GOOGLE_PRIVATE_KEY`, pegá el valor completo con los `\n` literales tal cual — Vercel lo guarda como string, y el código (`src/lib/sheets.ts`) hace `.replace(/\\n/g, "\n")` para convertirlos en saltos de línea reales en runtime.
 4. Deploy. Listo — no hace falta ninguna base de datos ni servicio adicional, todo el estado vive en el Google Sheet.
 
@@ -90,16 +90,16 @@ Abrí [http://localhost:3000](http://localhost:3000) — te va a pedir "¿Quién
 src/
   app/
     tracker/        Grilla de títulos + filtros + overlay de detalle
-    descubrir/      Búsqueda OMDb + recomendador simple
+    descubrir/      Búsqueda TMDB + recomendador simple
     dashboard/       Stats (vistos por persona / vs. crítica)
     api/
       titles/       GET (listar), POST (agregar título)
       titles/[row]/ PATCH (actualizar estado/nota de una persona en una fila)
       people/       GET (listar personas), POST (agregar persona)
-      search/       Proxy a OMDb (búsqueda y detalle)
+      search/       Proxy a TMDB (búsqueda de títulos)
   lib/
     sheets.ts        Toda la integración con Google Sheets API (schema dinámico, lecturas, escrituras)
-    omdb.ts          Cliente de OMDb
+    tmdb.ts          Cliente de TMDB
     stats.ts         Cálculo de estadísticas para el Dashboard
     recommend.ts     Lógica del recomendador simple
     palette.ts       Paleta de colores cíclica por persona (sin nombres hardcodeados)
@@ -126,10 +126,10 @@ Los colores por persona se asignan dinámicamente por posición (`src/lib/palett
 
 ### Poster opcional
 
-Si tu sheet tiene una columna llamada `Poster` (URL de imagen), la app la lee y la muestra en las cards y en el detalle. Si no existe esa columna, se muestra un placeholder con el título. Al agregar un título desde `/descubrir`, si la columna `Poster` existe se completa automáticamente con la imagen que trae OMDb.
+Si tu sheet tiene una columna llamada `Poster` (URL de imagen), la app la lee y la muestra en las cards y en el detalle. Si no existe esa columna, se muestra un placeholder con el título. Al agregar un título desde `/descubrir`, si la columna `Poster` existe se completa automáticamente con la imagen que trae TMDB.
 
 ## Próximos pasos posibles
 
-- Soporte de género (OMDb trae `Genre`) para afinar el recomendador y guardarlo en una columna nueva de la sheet.
+- Soporte de género (TMDB trae `genre_ids`/`genres`) para afinar el recomendador y guardarlo en una columna nueva de la sheet.
 - Editar Nota Crítica manualmente desde la app.
 - Borrar/editar títulos existentes desde el Tracker.

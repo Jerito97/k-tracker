@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePersonContext } from "@/context/PersonContext";
 import { useToast } from "@/context/ToastContext";
-import type { OmdbResultado } from "@/lib/omdb";
+import type { TmdbResultado } from "@/lib/tmdb";
 import type { Titulo } from "@/lib/types";
 import { recomendar } from "@/lib/recommend";
 
@@ -14,7 +14,7 @@ export default function DescubrirPage() {
   const { showToast } = useToast();
 
   const [query, setQuery] = useState("");
-  const [resultados, setResultados] = useState<OmdbResultado[]>([]);
+  const [resultados, setResultados] = useState<TmdbResultado[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [addStates, setAddStates] = useState<Record<string, AddState>>({});
@@ -59,34 +59,27 @@ export default function DescubrirPage() {
     }
   }
 
-  async function handleAgregar(resultado: OmdbResultado) {
-    setAddStates((prev) => ({ ...prev, [resultado.imdbID]: "adding" }));
+  async function handleAgregar(resultado: TmdbResultado) {
+    const key = String(resultado.id);
+    setAddStates((prev) => ({ ...prev, [key]: "adding" }));
     try {
-      const detalleRes = await fetch(`/api/search?imdbID=${encodeURIComponent(resultado.imdbID)}`);
-      const detalleData = await detalleRes.json();
-      if (!detalleRes.ok) throw new Error(detalleData.error || "No se pudo obtener el detalle");
-      const detalle = detalleData.detalle;
-
-      const notaCritica =
-        detalle.imdbRating && detalle.imdbRating !== "N/A" ? parseFloat(detalle.imdbRating) : null;
-
       const addRes = await fetch("/api/titles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          titulo: resultado.Title,
-          tipo: resultado.Type === "series" ? "Serie" : "Película",
-          resumen: detalle.Plot && detalle.Plot !== "N/A" ? detalle.Plot : "",
-          notaCritica,
-          poster: resultado.Poster !== "N/A" ? resultado.Poster : undefined,
+          titulo: resultado.titulo,
+          tipo: resultado.tipo,
+          resumen: resultado.resumen,
+          notaCritica: resultado.rating,
+          poster: resultado.poster || undefined,
         }),
       });
       const addData = await addRes.json();
       if (!addRes.ok) throw new Error(addData.error || "No se pudo agregar el título");
-      setAddStates((prev) => ({ ...prev, [resultado.imdbID]: "added" }));
-      showToast(`"${resultado.Title}" a Pendientes`);
+      setAddStates((prev) => ({ ...prev, [key]: "added" }));
+      showToast(`"${resultado.titulo}" a Pendientes`);
     } catch {
-      setAddStates((prev) => ({ ...prev, [resultado.imdbID]: "error" }));
+      setAddStates((prev) => ({ ...prev, [key]: "error" }));
       showToast("No se pudo agregar");
     }
   }
@@ -101,7 +94,7 @@ export default function DescubrirPage() {
       <form onSubmit={handleSearch} className="search-form">
         <input
           className="search-input"
-          placeholder="Buscar un título en OMDb..."
+          placeholder="Buscar un título en TMDB..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -116,14 +109,15 @@ export default function DescubrirPage() {
         <>
           <div className="discover-list" style={{ marginBottom: 28 }}>
             {resultados.map((r) => {
-              const estado = addStates[r.imdbID] || "idle";
+              const key = String(r.id);
+              const estado = addStates[key] || "idle";
               return (
-                <div key={r.imdbID} className="discover-card">
+                <div key={r.id} className="discover-card">
                   <div className="discover-poster">
-                    {r.Poster !== "N/A" && (
+                    {r.poster && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={r.Poster}
+                        src={r.poster}
                         alt=""
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       />
@@ -131,9 +125,9 @@ export default function DescubrirPage() {
                   </div>
                   <div className="discover-info">
                     <span className="discover-kind" style={{ color: "var(--accent-2)" }}>
-                      {r.Type === "series" ? "Serie" : "Película"} · {r.Year}
+                      {r.tipo} · {r.year}
                     </span>
-                    <div className="discover-title">{r.Title}</div>
+                    <div className="discover-title">{r.titulo}</div>
                     <button
                       className={"discover-btn" + (estado === "added" ? " added" : "")}
                       disabled={estado === "adding" || estado === "added"}
