@@ -128,6 +128,8 @@ Los colores por persona se asignan dinámicamente por posición (`src/lib/palett
 
 Si tu sheet tiene una columna llamada `Poster` (URL de imagen), la app la lee y la muestra en las cards y en el detalle. Si no existe esa columna, se muestra un placeholder con el título. Al agregar un título desde `/descubrir`, si la columna `Poster` existe se completa automáticamente con la imagen que trae TMDB.
 
+Para los títulos que ya estaban cargados antes de tener la columna `Poster` (no se completan solos), hay un botón **"Completar pósters faltantes"** al final del Dashboard: busca cada título sin póster en TMDB y completa la columna, sin tocar nada a mano.
+
 ## Próximos pasos posibles
 
 - Soporte de género (TMDB trae `genre_ids`/`genres`) para afinar el recomendador y guardarlo en una columna nueva de la sheet.

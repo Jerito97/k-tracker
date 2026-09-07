@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePersonContext } from "@/context/PersonContext";
+import { useToast } from "@/context/ToastContext";
 import type { Titulo } from "@/lib/types";
 import { computeStats } from "@/lib/stats";
 import { colorFor } from "@/lib/palette";
@@ -10,10 +11,30 @@ type Variant = "vistos" | "critica";
 
 export default function DashboardPage() {
   const { persona, personas } = usePersonContext();
+  const { showToast } = useToast();
   const [titulos, setTitulos] = useState<Titulo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [variant, setVariant] = useState<Variant>("vistos");
+  const [backfilling, setBackfilling] = useState(false);
+
+  async function handleBackfill() {
+    setBackfilling(true);
+    try {
+      const res = await fetch("/api/titles/backfill-posters", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo completar los pósters.");
+      showToast(
+        data.actualizados > 0
+          ? `${data.actualizados} de ${data.totalSinPoster} pósters completados`
+          : "No había pósters faltantes para completar"
+      );
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Error al completar pósters");
+    } finally {
+      setBackfilling(false);
+    }
+  }
 
   useEffect(() => {
     async function cargar() {
@@ -146,6 +167,24 @@ export default function DashboardPage() {
           <p className="stats-footnote">
             Sobre {stats.totalTitulos} títulos cargados en la sheet compartida.
           </p>
+
+          <button
+            onClick={handleBackfill}
+            disabled={backfilling}
+            style={{
+              marginTop: 18,
+              width: "100%",
+              padding: "12px",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--border)",
+              background: "var(--surface-2)",
+              color: "var(--text-muted)",
+              font: "600 12px/1 var(--font-body)",
+              cursor: "pointer",
+            }}
+          >
+            {backfilling ? "Buscando pósters..." : "Completar pósters faltantes"}
+          </button>
         </>
       )}
     </div>
