@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSchema, getTitulos, updateCelda } from "@/lib/sheets";
-import { buscarTitulos } from "@/lib/tmdb";
+import { buscarTitulos, elegirMejorMatch } from "@/lib/tmdb";
 
 export const maxDuration = 60;
 
@@ -26,9 +26,7 @@ export async function POST() {
 
     for (const t of faltantes) {
       const resultados = await buscarTitulos(t.titulo);
-      const match =
-        resultados.find((r) => r.poster && (!t.tipo || r.tipo === t.tipo)) ||
-        resultados.find((r) => r.poster);
+      const match = elegirMejorMatch(resultados, t.titulo, t.tipo);
       if (match?.poster) {
         await updateCelda(t.row, colPoster, match.poster);
         actualizados++;
